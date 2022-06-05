@@ -1,0 +1,51 @@
+# This is a gateway config.
+name: helloworld
+version: v1
+hosts:
+  - localhost
+  - 127.0.0.1
+middlewares:
+  - name: logging
+  - name: cors
+    options:
+      '@type': type.googleapis.com/gateway.middleware.cors.v1.Cors
+      allowCredentials: true
+      allowOrigins:
+        - localhost
+      allowMethods:
+        - GET
+        - POST
+        - OPTIONS
+  - name: transcoder
+#  - name: otel
+#    options:
+#      '@type': type.googleapis.com/gateway.middleware.otel.v1.Otel
+#      httpEndpoint: 'localhost:4318' # default opentelemetry collector port
+endpoints:
+#  - path: /v1/user/*
+#    timeout: 1s
+#    protocol: HTTP
+#    backends:
+#      - target: '127.0.0.1:8000'
+#    middlewares:
+#      - name: circuitbreaker
+#        options:
+#          '@type': type.googleapis.com/gateway.middleware.circuitbreaker.v1.CircuitBreaker
+#          successRatio: {"success":0.6, "request":"1", "bucket":"10", "window":"3s"}
+#          backupService: {"endpoint":{"backends":[{"target":"127.0.0.1:8001"}]}}
+#          assertCondtions:
+#          - {"by_status_code":"200"}
+  - path: /user.v1.User/*
+    method: POST
+    timeout: 1s
+    protocol: GRPC
+    backends:
+      - target: 'discovery:///user.grpc'
+    retry:
+      attempts: 3
+      perTryTimeout: 0.1s
+      conditions:
+        - byStatusCode: '502-504'
+        - byHeader:
+            name: 'Grpc-Status'
+            value: '14'
