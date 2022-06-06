@@ -3,14 +3,10 @@ package nacos
 import (
 	"github.com/go-kratos/gateway/discovery"
 	"github.com/go-kratos/kratos/contrib/registry/nacos/v2"
-	_ "github.com/go-kratos/kratos/contrib/registry/nacos/v2"
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/nacos-group/nacos-sdk-go/clients"
-	_ "github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
-	_ "github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	_ "github.com/nacos-group/nacos-sdk-go/vo"
 	"net/url"
 	"strconv"
 	"strings"
@@ -34,6 +30,10 @@ func New(dsn *url.URL) (registry.Discovery, error) {
 
 	cc := constant.ClientConfig{
 		UpdateCacheWhenEmpty: true,
+		NotLoadCacheAtStart:  true,
+		RotateTime:           "1h",
+		MaxAge:               3,
+		LogLevel:             "warn",
 		NamespaceId:          "public",
 		TimeoutMs:            5000,
 	}
