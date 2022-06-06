@@ -18,7 +18,6 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/uuid"
 	gorillamux "github.com/gorilla/mux"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -102,18 +101,18 @@ func (c *CtrlConfigLoader) Load(ctx context.Context) (err error) {
 		return err
 	}
 
-	resp := &LoadResponse{}
-	if err := json.Unmarshal(cfgBytes, &resp); err != nil {
-		return err
-	}
-
-	yamlBytes, err := yaml.JSONToYAML([]byte(resp.Config))
-	if err != nil {
-		return err
-	}
+	//resp := &LoadResponse{}
+	//if err := json.Unmarshal(cfgBytes, &resp); err != nil {
+	//	return err
+	//}
+	//
+	//yamlBytes, err := yaml.JSONToYAML([]byte(resp.Config))
+	//if err != nil {
+	//	return err
+	//}
 
 	tmpPath := fmt.Sprintf("%s.%s.tmp", c.dstPath, uuid.New().String())
-	if err := ioutil.WriteFile(tmpPath, yamlBytes, 0644); err != nil {
+	if err := ioutil.WriteFile(tmpPath, cfgBytes, 0644); err != nil {
 		return err
 	}
 	if err := os.Rename(tmpPath, c.dstPath); err != nil {
@@ -191,10 +190,10 @@ func (c *CtrlConfigLoader) getAdvertiseAddr() string {
 
 func (c *CtrlConfigLoader) load(ctx context.Context) ([]byte, error) {
 	params := url.Values{}
-	params.Set("gateway", c.hostname)
-	params.Set("ip_addr", c.advertiseAddr)
+	params.Set("dataId", "gateway")
+	params.Set("group", "matrix")
 	LOG.Infof("%s is requesting config from %s with params: %+v", c.hostname, c.ctrlService, params)
-	api, err := c.urlfor("/v1/control/gateway/release", params)
+	api, err := c.urlfor("/nacos/v1/cs/configs", params)
 	if err != nil {
 		return nil, err
 	}
