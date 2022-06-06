@@ -70,11 +70,11 @@ func sha256sum(in []byte) string {
 }
 
 func (f *fileLoader) configSHA256() (string, error) {
-	configData, err := ioutil.ReadFile(f.confPath)
-	if err != nil {
-		return "", err
-	}
-	return sha256sum(configData), nil
+	//configData, err := ioutil.ReadFile(f.confPath)
+	//if err != nil {
+	//	return "", err
+	//}
+	return sha256sum([]byte{}), nil
 }
 
 func (f *fileLoader) Load(_ context.Context) (*configv1.Gateway, error) {
