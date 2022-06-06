@@ -73,10 +73,10 @@ func main() {
 	circuitbreaker.Init(clientFactory)
 
 	ctx := context.Background()
-	var ctrlLoader *configLoader.CtrlConfigLoader
+	var ctrlLoader *configLoader.NacosCtrlConfigLoader
 	if ctrlService != "" {
 		LOG.Infof("setup control service to: %q", ctrlService)
-		ctrlLoader = configLoader.New(ctrlService, proxyConfig)
+		ctrlLoader = configLoader.NewNacosConfigLoader(ctrlService, proxyConfig)
 		if err := ctrlLoader.Load(ctx); err != nil {
 			LOG.Errorf("failed to do initial load from control service: %v, using local config instead", err)
 		}
