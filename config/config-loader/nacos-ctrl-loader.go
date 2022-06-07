@@ -108,6 +108,8 @@ func (c *NacosCtrlConfigLoader) Run(ctx context.Context) {
 	for {
 		if err := c.Load(ctx); err != nil {
 			// logging
+			LOG.Error(err)
+			time.Sleep(time.Second * 5)
 			continue
 		}
 		select {
