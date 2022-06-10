@@ -7,10 +7,10 @@
 package v1
 
 import (
+	duration "github.com/golang/protobuf/ptypes/duration"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
-	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
 	sync "sync"
 )
@@ -155,15 +155,15 @@ type Endpoint struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Path        string               `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Method      string               `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
-	Description string               `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Protocol    Protocol             `protobuf:"varint,4,opt,name=protocol,proto3,enum=gateway.config.v1.Protocol" json:"protocol,omitempty"`
-	Timeout     *durationpb.Duration `protobuf:"bytes,5,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	Middlewares []*Middleware        `protobuf:"bytes,6,rep,name=middlewares,proto3" json:"middlewares,omitempty"`
-	Backends    []*Backend           `protobuf:"bytes,7,rep,name=backends,proto3" json:"backends,omitempty"`
-	Retry       *Retry               `protobuf:"bytes,8,opt,name=retry,proto3" json:"retry,omitempty"`
-	Ha          string               `protobuf:"bytes,9,opt,name=ha,proto3" json:"ha,omitempty"`
+	Path        string             `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Method      string             `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	Description string             `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Protocol    Protocol           `protobuf:"varint,4,opt,name=protocol,proto3,enum=gateway.config.v1.Protocol" json:"protocol,omitempty"`
+	Timeout     *duration.Duration `protobuf:"bytes,5,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Middlewares []*Middleware      `protobuf:"bytes,6,rep,name=middlewares,proto3" json:"middlewares,omitempty"`
+	Backends    []*Backend         `protobuf:"bytes,7,rep,name=backends,proto3" json:"backends,omitempty"`
+	Retry       *Retry             `protobuf:"bytes,8,opt,name=retry,proto3" json:"retry,omitempty"`
+	Ha          string             `protobuf:"bytes,9,opt,name=ha,proto3" json:"ha,omitempty"`
 }
 
 func (x *Endpoint) Reset() {
@@ -226,7 +226,7 @@ func (x *Endpoint) GetProtocol() Protocol {
 	return Protocol_UNSPECIFIED
 }
 
-func (x *Endpoint) GetTimeout() *durationpb.Duration {
+func (x *Endpoint) GetTimeout() *duration.Duration {
 	if x != nil {
 		return x.Timeout
 	}
@@ -426,9 +426,9 @@ type Retry struct {
 	unknownFields protoimpl.UnknownFields
 
 	// default attempts is 1
-	Attempts      uint32               `protobuf:"varint,1,opt,name=attempts,proto3" json:"attempts,omitempty"`
-	PerTryTimeout *durationpb.Duration `protobuf:"bytes,2,opt,name=per_try_timeout,json=perTryTimeout,proto3" json:"per_try_timeout,omitempty"`
-	Conditions    []*Condition         `protobuf:"bytes,3,rep,name=conditions,proto3" json:"conditions,omitempty"`
+	Attempts      uint32             `protobuf:"varint,1,opt,name=attempts,proto3" json:"attempts,omitempty"`
+	PerTryTimeout *duration.Duration `protobuf:"bytes,2,opt,name=per_try_timeout,json=perTryTimeout,proto3" json:"per_try_timeout,omitempty"`
+	Conditions    []*Condition       `protobuf:"bytes,3,rep,name=conditions,proto3" json:"conditions,omitempty"`
 	// primary,secondary
 	Priorities []string `protobuf:"bytes,4,rep,name=priorities,proto3" json:"priorities,omitempty"`
 }
@@ -472,7 +472,7 @@ func (x *Retry) GetAttempts() uint32 {
 	return 0
 }
 
-func (x *Retry) GetPerTryTimeout() *durationpb.Duration {
+func (x *Retry) GetPerTryTimeout() *duration.Duration {
 	if x != nil {
 		return x.PerTryTimeout
 	}
@@ -740,17 +740,17 @@ func file_gateway_config_v1_gateway_proto_rawDescGZIP() []byte {
 var file_gateway_config_v1_gateway_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_gateway_config_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_gateway_config_v1_gateway_proto_goTypes = []interface{}{
-	(Protocol)(0),               // 0: gateway.config.v1.Protocol
-	(*Gateway)(nil),             // 1: gateway.config.v1.Gateway
-	(*Endpoint)(nil),            // 2: gateway.config.v1.Endpoint
-	(*Middleware)(nil),          // 3: gateway.config.v1.Middleware
-	(*Backend)(nil),             // 4: gateway.config.v1.Backend
-	(*HealthCheck)(nil),         // 5: gateway.config.v1.HealthCheck
-	(*Retry)(nil),               // 6: gateway.config.v1.Retry
-	(*Condition)(nil),           // 7: gateway.config.v1.Condition
-	(*ConditionHeader)(nil),     // 8: gateway.config.v1.Condition.header
-	(*durationpb.Duration)(nil), // 9: google.protobuf.Duration
-	(*anypb.Any)(nil),           // 10: google.protobuf.Any
+	(Protocol)(0),             // 0: gateway.config.v1.Protocol
+	(*Gateway)(nil),           // 1: gateway.config.v1.Gateway
+	(*Endpoint)(nil),          // 2: gateway.config.v1.Endpoint
+	(*Middleware)(nil),        // 3: gateway.config.v1.Middleware
+	(*Backend)(nil),           // 4: gateway.config.v1.Backend
+	(*HealthCheck)(nil),       // 5: gateway.config.v1.HealthCheck
+	(*Retry)(nil),             // 6: gateway.config.v1.Retry
+	(*Condition)(nil),         // 7: gateway.config.v1.Condition
+	(*ConditionHeader)(nil),   // 8: gateway.config.v1.Condition.header
+	(*duration.Duration)(nil), // 9: google.protobuf.Duration
+	(*anypb.Any)(nil),         // 10: google.protobuf.Any
 }
 var file_gateway_config_v1_gateway_proto_depIdxs = []int32{
 	2,  // 0: gateway.config.v1.Gateway.endpoints:type_name -> gateway.config.v1.Endpoint
