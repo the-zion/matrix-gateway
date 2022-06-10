@@ -8,9 +8,9 @@ package v1
 
 import (
 	v1 "github.com/go-kratos/gateway/api/gateway/config/v1"
+	duration "github.com/golang/protobuf/ptypes/duration"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
 	sync "sync"
 )
@@ -322,10 +322,10 @@ type SuccessRatio struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Success float64              `protobuf:"fixed64,1,opt,name=success,proto3" json:"success,omitempty"`
-	Request int32                `protobuf:"varint,2,opt,name=request,proto3" json:"request,omitempty"`
-	Bucket  int32                `protobuf:"varint,3,opt,name=bucket,proto3" json:"bucket,omitempty"`
-	Window  *durationpb.Duration `protobuf:"bytes,4,opt,name=window,proto3" json:"window,omitempty"`
+	Success float64            `protobuf:"fixed64,1,opt,name=success,proto3" json:"success,omitempty"`
+	Request int32              `protobuf:"varint,2,opt,name=request,proto3" json:"request,omitempty"`
+	Bucket  int32              `protobuf:"varint,3,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	Window  *duration.Duration `protobuf:"bytes,4,opt,name=window,proto3" json:"window,omitempty"`
 }
 
 func (x *SuccessRatio) Reset() {
@@ -381,7 +381,7 @@ func (x *SuccessRatio) GetBucket() int32 {
 	return 0
 }
 
-func (x *SuccessRatio) GetWindow() *durationpb.Duration {
+func (x *SuccessRatio) GetWindow() *duration.Duration {
 	if x != nil {
 		return x.Window
 	}
@@ -474,14 +474,14 @@ func file_gateway_middleware_circuitbreaker_v1_circuitbreaker_proto_rawDescGZIP(
 
 var file_gateway_middleware_circuitbreaker_v1_circuitbreaker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_gateway_middleware_circuitbreaker_v1_circuitbreaker_proto_goTypes = []interface{}{
-	(*CircuitBreaker)(nil),      // 0: gateway.middleware.circuitbreaker.v1.CircuitBreaker
-	(*Header)(nil),              // 1: gateway.middleware.circuitbreaker.v1.Header
-	(*ResponseData)(nil),        // 2: gateway.middleware.circuitbreaker.v1.ResponseData
-	(*BackupService)(nil),       // 3: gateway.middleware.circuitbreaker.v1.BackupService
-	(*SuccessRatio)(nil),        // 4: gateway.middleware.circuitbreaker.v1.SuccessRatio
-	(*v1.Condition)(nil),        // 5: gateway.config.v1.Condition
-	(*v1.Endpoint)(nil),         // 6: gateway.config.v1.Endpoint
-	(*durationpb.Duration)(nil), // 7: google.protobuf.Duration
+	(*CircuitBreaker)(nil),    // 0: gateway.middleware.circuitbreaker.v1.CircuitBreaker
+	(*Header)(nil),            // 1: gateway.middleware.circuitbreaker.v1.Header
+	(*ResponseData)(nil),      // 2: gateway.middleware.circuitbreaker.v1.ResponseData
+	(*BackupService)(nil),     // 3: gateway.middleware.circuitbreaker.v1.BackupService
+	(*SuccessRatio)(nil),      // 4: gateway.middleware.circuitbreaker.v1.SuccessRatio
+	(*v1.Condition)(nil),      // 5: gateway.config.v1.Condition
+	(*v1.Endpoint)(nil),       // 6: gateway.config.v1.Endpoint
+	(*duration.Duration)(nil), // 7: google.protobuf.Duration
 }
 var file_gateway_middleware_circuitbreaker_v1_circuitbreaker_proto_depIdxs = []int32{
 	4, // 0: gateway.middleware.circuitbreaker.v1.CircuitBreaker.success_ratio:type_name -> gateway.middleware.circuitbreaker.v1.SuccessRatio

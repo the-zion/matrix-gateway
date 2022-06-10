@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package gateway.middleware.auth.v1;
+
+option go_package = "github.com/go-kratos/gateway/api/gateway/middleware/auth/v1";
+
+// logging middleware config.
+message Casbin{
+  map<string, string> model = 1;
+  repeated string policy = 2;
+}
+
+message Auth {
+  string key = 1;
+  map<string, int64> jwt_check_routers = 2;
+  Casbin casbin = 3;
+}

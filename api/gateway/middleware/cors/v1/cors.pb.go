@@ -7,9 +7,9 @@
 package v1
 
 import (
+	duration "github.com/golang/protobuf/ptypes/duration"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
 	sync "sync"
 )
@@ -27,13 +27,13 @@ type Cors struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	AllowCredentials    bool                 `protobuf:"varint,1,opt,name=allow_credentials,json=allowCredentials,proto3" json:"allow_credentials,omitempty"`
-	AllowOrigins        []string             `protobuf:"bytes,2,rep,name=allow_origins,json=allowOrigins,proto3" json:"allow_origins,omitempty"`
-	AllowMethods        []string             `protobuf:"bytes,3,rep,name=allow_methods,json=allowMethods,proto3" json:"allow_methods,omitempty"`
-	AllowHeaders        []string             `protobuf:"bytes,4,rep,name=allow_headers,json=allowHeaders,proto3" json:"allow_headers,omitempty"`
-	ExposeHeaders       []string             `protobuf:"bytes,5,rep,name=expose_headers,json=exposeHeaders,proto3" json:"expose_headers,omitempty"`
-	MaxAge              *durationpb.Duration `protobuf:"bytes,6,opt,name=max_age,json=maxAge,proto3" json:"max_age,omitempty"`
-	AllowPrivateNetwork bool                 `protobuf:"varint,7,opt,name=allow_private_network,json=allowPrivateNetwork,proto3" json:"allow_private_network,omitempty"`
+	AllowCredentials    bool               `protobuf:"varint,1,opt,name=allow_credentials,json=allowCredentials,proto3" json:"allow_credentials,omitempty"`
+	AllowOrigins        []string           `protobuf:"bytes,2,rep,name=allow_origins,json=allowOrigins,proto3" json:"allow_origins,omitempty"`
+	AllowMethods        []string           `protobuf:"bytes,3,rep,name=allow_methods,json=allowMethods,proto3" json:"allow_methods,omitempty"`
+	AllowHeaders        []string           `protobuf:"bytes,4,rep,name=allow_headers,json=allowHeaders,proto3" json:"allow_headers,omitempty"`
+	ExposeHeaders       []string           `protobuf:"bytes,5,rep,name=expose_headers,json=exposeHeaders,proto3" json:"expose_headers,omitempty"`
+	MaxAge              *duration.Duration `protobuf:"bytes,6,opt,name=max_age,json=maxAge,proto3" json:"max_age,omitempty"`
+	AllowPrivateNetwork bool               `protobuf:"varint,7,opt,name=allow_private_network,json=allowPrivateNetwork,proto3" json:"allow_private_network,omitempty"`
 }
 
 func (x *Cors) Reset() {
@@ -103,7 +103,7 @@ func (x *Cors) GetExposeHeaders() []string {
 	return nil
 }
 
-func (x *Cors) GetMaxAge() *durationpb.Duration {
+func (x *Cors) GetMaxAge() *duration.Duration {
 	if x != nil {
 		return x.MaxAge
 	}
@@ -166,8 +166,8 @@ func file_gateway_middleware_cors_v1_cors_proto_rawDescGZIP() []byte {
 
 var file_gateway_middleware_cors_v1_cors_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_gateway_middleware_cors_v1_cors_proto_goTypes = []interface{}{
-	(*Cors)(nil),                // 0: gateway.middleware.cors.v1.Cors
-	(*durationpb.Duration)(nil), // 1: google.protobuf.Duration
+	(*Cors)(nil),              // 0: gateway.middleware.cors.v1.Cors
+	(*duration.Duration)(nil), // 1: google.protobuf.Duration
 }
 var file_gateway_middleware_cors_v1_cors_proto_depIdxs = []int32{
 	1, // 0: gateway.middleware.cors.v1.Cors.max_age:type_name -> google.protobuf.Duration
