@@ -17,6 +17,7 @@ import (
 	_ "net/http/pprof"
 
 	_ "github.com/go-kratos/gateway/discovery/nacos"
+	_ "github.com/go-kratos/gateway/middleware/auth"
 	"github.com/go-kratos/gateway/middleware/circuitbreaker"
 	_ "github.com/go-kratos/gateway/middleware/cors"
 	_ "github.com/go-kratos/gateway/middleware/logging"
