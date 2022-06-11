@@ -1,6 +1,6 @@
 module github.com/go-kratos/gateway
 
-go 1.15
+go 1.19
 
 require (
 	github.com/go-kratos/aegis v0.1.2
