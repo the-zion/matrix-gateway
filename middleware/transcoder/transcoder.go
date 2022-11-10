@@ -14,6 +14,7 @@ import (
 	"github.com/go-kratos/gateway/middleware"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func decodeBinHeader(v string) ([]byte, error) {
@@ -84,6 +85,15 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 				st := &spb.Status{
 					Code:    int32(code),
 					Message: resp.Header.Get("grpc-message"),
+				}
+				if grpcDetails := resp.Header.Get("grpc-status-details-bin"); grpcDetails != "" {
+					details, err := decodeBinHeader(grpcDetails)
+					if err != nil {
+						return nil, err
+					}
+					if err = proto.Unmarshal(details, st); err != nil {
+						return nil, err
+					}
 				}
 				data, err := protojson.Marshal(st)
 				if err != nil {

@@ -1,21 +1,16 @@
-package otel
+package tracing
 
 import (
 	"context"
 	"fmt"
-	"log"
-	"net/http"
-	"sync"
-	"time"
-
 	config "github.com/go-kratos/gateway/api/gateway/config/v1"
-	v1 "github.com/go-kratos/gateway/api/gateway/middleware/otel/v1"
+	v1 "github.com/go-kratos/gateway/api/gateway/middleware/tracing/v1"
 	"github.com/go-kratos/gateway/middleware"
 	"github.com/go-kratos/kratos/v2"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -23,26 +18,32 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"log"
+	"net/http"
+	"os"
+	"sync"
 )
 
-const (
-	defaultTimeout     = time.Duration(10 * time.Second)
-	defaultServiceName = "gateway"
-	defaultTracerName  = "gateway"
+var (
+	hostname, _ = os.Hostname()
+	//defaultTimeout     = time.Duration(10 * time.Second)
+	defaultServiceName = "gateway" + "." + hostname
+	defaultTracerName  = "gateway" + "." + hostname
 )
 
 var globaltp = &struct {
-	provider trace.TracerProvider
-	initOnce sync.Once
+	provider   trace.TracerProvider
+	propagator propagation.TextMapPropagator
+	initOnce   sync.Once
 }{}
 
 func init() {
-	middleware.Register("otel", Middleware)
+	middleware.Register("tracing", Middleware)
 }
 
 // Middleware is a opentelemetry middleware.
 func Middleware(c *config.Middleware) (middleware.Middleware, error) {
-	options := &v1.Otel{}
+	options := &v1.Tracing{}
 	if c.Options != nil {
 		if err := anypb.UnmarshalTo(c.Options, options, proto.UnmarshalOptions{Merge: true}); err != nil {
 			return nil, err
@@ -51,15 +52,17 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 	if globaltp.provider == nil {
 		globaltp.initOnce.Do(func() {
 			globaltp.provider = newTracerProvider(context.Background(), options)
-			propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
+			//propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
+			globaltp.propagator = propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 			otel.SetTracerProvider(globaltp.provider)
-			otel.SetTextMapPropagator(propagator)
+			otel.SetTextMapPropagator(globaltp.propagator)
 		})
 	}
 	tracer := otel.Tracer(defaultTracerName)
 	return func(next http.RoundTripper) http.RoundTripper {
 		return middleware.RoundTripperFunc(func(req *http.Request) (reply *http.Response, err error) {
-			_, span := tracer.Start(
+			req.Header.Set("x-md-service-name", defaultServiceName)
+			ctx, span := tracer.Start(
 				req.Context(),
 				fmt.Sprintf("%s %s", req.Method, req.URL.Path),
 				trace.WithSpanKind(trace.SpanKindClient),
@@ -71,6 +74,8 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 				semconv.HTTPTargetKey.String(req.URL.Path),
 				semconv.NetPeerIPKey.String(req.RemoteAddr),
 			)
+
+			globaltp.propagator.Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 			defer func() {
 				if err != nil {
@@ -84,14 +89,14 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 				}
 				span.End()
 			}()
-			return next.RoundTrip(req)
+			return next.RoundTrip(req.WithContext(ctx))
 		})
 	}, nil
 }
 
-func newTracerProvider(ctx context.Context, options *v1.Otel) trace.TracerProvider {
+func newTracerProvider(ctx context.Context, options *v1.Tracing) trace.TracerProvider {
 	var (
-		timeout     = defaultTimeout
+		//timeout     = defaultTimeout
 		serviceName = defaultServiceName
 	)
 
@@ -99,9 +104,9 @@ func newTracerProvider(ctx context.Context, options *v1.Otel) trace.TracerProvid
 		serviceName = appInfo.Name()
 	}
 
-	if options.Timeout != nil {
-		timeout = options.Timeout.AsDuration()
-	}
+	//if options.Timeout != nil {
+	//	timeout = options.Timeout.AsDuration()
+	//}
 
 	var sampler sdktrace.Sampler
 	if options.SampleRatio == nil {
@@ -110,20 +115,32 @@ func newTracerProvider(ctx context.Context, options *v1.Otel) trace.TracerProvid
 		sampler = sdktrace.TraceIDRatioBased(float64(*options.SampleRatio))
 	}
 
-	client := otlptracehttp.NewClient(
-		otlptracehttp.WithEndpoint(options.HttpEndpoint),
-		otlptracehttp.WithTimeout(timeout),
-	)
+	//client := otlptracehttp.NewClient(
+	//	otlptracehttp.WithEndpoint(options.HttpEndpoint),
+	//	otlptracehttp.WithTimeout(timeout),
+	//	otlptracehttp.WithInsecure(),
+	//	otlptracehttp.WithURLPath(""),
+	//)
+	//
+	//exporter, err := otlptrace.New(ctx, client)
+	//if err != nil {
+	//	log.Fatalf("creating OTLP trace exporter: %v", err)
+	//}
 
-	exporter, err := otlptrace.New(ctx, client)
+	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(options.HttpEndpoint)))
 	if err != nil {
-		log.Fatalf("creating OTLP trace exporter: %v", err)
+		log.Fatalf("creating jaeger trace exporter: %v", err)
 	}
 
 	// attributes for all requests
 	resources := resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceNameKey.String(serviceName),
+		attribute.String("exporter", "jaeger"),
+		attribute.Float64("float", 312.23),
+		attribute.KeyValue{
+			Key: "token", Value: attribute.StringValue(options.HttpEndpointToken),
+		},
 	)
 
 	return sdktrace.NewTracerProvider(

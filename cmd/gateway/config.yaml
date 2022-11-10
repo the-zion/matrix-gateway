@@ -1,46 +1,231 @@
-# This is a gateway config.
-name: helloworld
+name: gateway
 version: v1
 hosts:
   - localhost
   - 127.0.0.1
 middlewares:
-  - name: logging
   - name: cors
     options:
       '@type': type.googleapis.com/gateway.middleware.cors.v1.Cors
       allowCredentials: true
+      allowHeaders:
+        - Authorization
+        - Cache-Control
       allowOrigins:
         - localhost
       allowMethods:
         - GET
         - POST
         - OPTIONS
+  - name: tracing
+    options:
+      '@type': type.googleapis.com/gateway.middleware.tracing.v1.Tracing
+      httpEndpoint: 'http://ap-shanghai.apm.tencentcs.com:14268/api/traces' # default opentelemetry collector port
+      httpEndpointToken: 'ZsdpAaQzmxweZatcuBXg'
+      sampleRatio: 0.5
+  - name: bbr
+  - name: logging
+  - name: auth
+    options:
+      '@type': type.googleapis.com/gateway.middleware.auth.v1.Auth
+      key: some-secret-key-for-forntend
+      jwtCheckRouters: {
+        "/v1/get/user/profile": 1,
+        "/v1/get/cos/session/key": 1,
+        "/v1/get/user/profile/update": 1,
+        "/v1/set/user/profile/update": 1,
+        "/v1/get/user/account": 1,
+        "/v1/set/user/phone": 1,
+        "/v1/set/user/email": 1,
+        "/v1/unbind/user/phone": 1,
+        "/v1/unbind/user/email": 1,
+        "/v1/set/user/password": 1,
+        "/v1/change/user/password": 1,
+        "/v1/create/article/draft": 1,
+        "/v1/get/last/article/draft": 1,
+        "/v1/article/draft/mark": 1,
+        "/v1/get/article/draft/list": 1,
+        "/v1/send/article": 1,
+        "/v1/set/article/agree": 1,
+        "/v1/get/collections/list": 1,
+        "/v1/set/article/collect": 1,
+        "/v1/cancel/article/agree": 1,
+        "/v1/cancel/article/collect": 1,
+        "/v1/delete/collections": 1,
+        "/v1/get/user/article/list": 1,
+        "/v1/send/article/edit": 1,
+        "/v1/delete/article": 1,
+        "/v1/get/last/talk/draft": 1,
+        "/v1/create/talk/draft": 1,
+        "/v1/send/talk": 1,
+        "/v1/set/talk/agree": 1,
+        "/v1/cancel/talk/agree": 1,
+        "/v1/set/talk/collect": 1,
+        "/v1/get/user/talk/list": 1,
+        "/v1/send/talk/edit": 1,
+        "/v1/delete/talk": 1,
+        "/v1/cancel/talk/collect": 1,
+        "/v1/get/last/column/draft": 1,
+        "/v1/create/column/draft": 1,
+        "/v1/send/column": 1,
+        "/v1/get/user/column/list": 1,
+        "/v1/send/column/edit": 1,
+        "/v1/delete/column": 1,
+        "/v1/set/column/agree": 1,
+        "/v1/cancel/column/agree": 1,
+        "/v1/cancel/column/collect": 1,
+        "/v1/set/column/view": 1,
+        "/v1/add/column/includes": 1,
+        "/v1/delete/column/includes": 1,
+        "/v1/set/column/collect": 1,
+        "/v1/set/user/follow": 1,
+        "/v1/cancel/user/follow": 1,
+        "/v1/subscribe/column": 1,
+        "/v1/cancel/subscribe/column": 1,
+        "/v1/get/column/subscribes": 1,
+        "/v1/create/comment/draft": 1,
+        "/v1/get/last/comment/draft": 1,
+        "/v1/send/comment": 1,
+        "/v1/send/subcomment": 1,
+        "/v1/set/comment/agree": 1,
+        "/v1/cancel/comment/agree": 1,
+        "/v1/remove/comment": 1,
+        "/v1/get/user/comment/agree": 1,
+        "/v1/remove/subcomment": 1,
+        "/v1/set/subcomment/agree": 1,
+        "/v1/cancel/subcomment/agree": 1,
+        "/v1/get/user/info": 1,
+        "/v1/get/user/article/list/simple": 1,
+        "/v1/get/user/column/list/simple": 1,
+        "/v1/get/user/talk/list/simple": 1,
+        "/v1/get/user/medal/progress": 1,
+        "/v1/set/user/medal": 1,
+        "/v1/cancel/user/medal/set": 1,
+        "/v1/access/user/medal": 1,
+        "/v1/get/user/article/agree": 1,
+        "/v1/get/user/article/collect": 1,
+        "/v1/get/collections/list/all": 1,
+        "/v1/get/user/talk/agree": 1,
+        "/v1/get/user/talk/collect": 1,
+        "/v1/get/user/column/agree": 1,
+        "/v1/get/user/column/collect": 1,
+        "/v1/get/user/article/list/all": 1,
+        "/v1/get/user/subscribe/column": 1,
+        "/v1/get/subscribe/list": 1,
+        "/v1/get/last/collections/draft": 1,
+        "/v1/create/collections/draft": 1,
+        "/v1/send/collections": 1,
+        "/v1/send/collections/edit": 1,
+        "/v1/get/user/follows": 1,
+        "/v1/get/user/comment/article/reply/list": 1,
+        "/v1/get/user/comment/talk/reply/list": 1,
+        "/v1/get/user/subcomment/article/reply/list": 1,
+        "/v1/get/user/subcomment/talk/reply/list": 1,
+         "/v1/get/user/comment/article/replied/list": 1,
+        "/v1/get/user/comment/talk/replied/list": 1,
+        "/v1/get/user/subcomment/article/replied/list": 1,
+        "/v1/get/user/subcomment/talk/replied/list": 1,
+        "/v1/get/comment/user": 1,
+        "/v1/get/avatar/review": 1,
+        "/v1/get/cover/review": 1,
+        "/v1/get/article/image/review": 1,
+        "/v1/get/talk/image/review": 1,
+        "/v1/get/column/image/review": 1,
+        "/v1/get/article/content/review": 1,
+        "/v1/get/talk/content/review": 1,
+        "/v1/get/column/content/review": 1,
+        "/v1/get/collections/content/review": 1,
+        "/v1/get/comment/content/review": 1,
+        "/v1/get/timeline/user": 1,
+        "/v1/get/mailbox/last/time": 1,
+        "/v1/set/mailbox/last/time": 1,
+        "/v1/get/message/notification": 1,
+        "/v1/get/user/comment/replied/list": 1,
+        "/v1/get/user/subcomment/replied/list": 1,
+        "/v1/remove/mailbox/comment/count": 1,
+        "/v1/remove/mailbox/subcomment/count": 1,
+        "/v1/get/message/system/notification": 1,
+        "/v1/remove/mailbox/system/notification": 1,
+      }
+      casbin:
+        model:
+          - "[request_definition]"
+          - r = sub, obj, act
+          - "[policy_definition]"
+          - p = sub, obj, act
+          - "[role_definition]"
+          - g = _, _
+          - "[policy_effect]"
+          - e = some(where (p.eft == allow))
+          - "[matchers]"
+          - m = g(r.sub, p.sub) && regexMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
+        policy:
+          - p, user, .*, .*
+          - p, visitor, /v1/test, GET
+          - p, visitor, /v1/user/code/phone, POST
+          - p, visitor, /v1/user/code/email, POST
+          - p, visitor, /v1/user/login/code, POST
+          - p, visitor, /v1/user/register, POST
+          - p, visitor, /v1/user/login/password, POST
+          - p, visitor, /v1/user/login/password/reset, POST
+          - p, visitor, /v1/get/article/list, GET
+          - p, visitor, /v1/get/article/list/hot, GET
+          - p, visitor, /v1/get/leaderboard, GET
+          - p, visitor, /v1/set/article/view, POST
+          - p, visitor, /v1/get/collections/list/visitor, GET
+          - p, visitor, /v1/get/collect/article/list, GET
+          - p, visitor, /v1/get/collect/talk/list, GET
+          - p, visitor, /v1/get/collections, GET
+          - p, visitor, /v1/get/user/article/list/visitor, GET
+          - p, visitor, /v1/get/talk/list, GET
+          - p, visitor, /v1/get/talk/list/hot, GET
+          - p, visitor, /v1/set/talk/view, POST
+          - p, visitor, /v1/get/user/talk/list/visitor, GET
+          - p, visitor, /v1/get/column/list, GET
+          - p, visitor, /v1/get/column/list/hot, GET
+          - p, visitor, /v1/get/user/column/list/visitor, GET
+          - p, visitor, /v1/get/column/article/list, GET
+          - p, visitor, /v1/get/collect/column/list, GET
+          - p, visitor, /v1/get/follow/list, GET
+          - p, visitor, /v1/get/followed/list, GET
+          - p, visitor, /v1/get/profile/list, GET
+          - p, visitor, /v1/get/news, GET
+          - p, visitor, /v1/get/article/search, GET
+          - p, visitor, /v1/get/talk/search, GET
+          - p, visitor, /v1/get/column/search, GET
+          - p, visitor, /v1/get/user/search, GET
+          - p, visitor, /v1/get/comment/list, GET
+          - p, visitor, /v1/get/comment/list/hot, GET
+          - p, visitor, /v1/get/subcomment/list, GET
+          - p, visitor, /v1/get/user/info/visitor, GET
+          - p, visitor, /v1/get/user/medal, GET
+          - p, visitor, /v1/get/article/statistic, GET
+          - p, visitor, /v1/get/talk/statistic, GET
+          - p, visitor, /v1/get/column/statistic, GET
+          - p, visitor, /v1/get/user/timeline/list/visitor, GET
+          - g, [0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}, user
+          - g, , visitor
   - name: transcoder
-#  - name: otel
-#    options:
-#      '@type': type.googleapis.com/gateway.middleware.otel.v1.Otel
-#      httpEndpoint: 'localhost:4318' # default opentelemetry collector port
 endpoints:
-#  - path: /v1/user/*
-#    timeout: 1s
-#    protocol: HTTP
-#    backends:
-#      - target: '127.0.0.1:8000'
-#    middlewares:
-#      - name: circuitbreaker
-#        options:
-#          '@type': type.googleapis.com/gateway.middleware.circuitbreaker.v1.CircuitBreaker
-#          successRatio: {"success":0.6, "request":"1", "bucket":"10", "window":"3s"}
-#          backupService: {"endpoint":{"backends":[{"target":"127.0.0.1:8001"}]}}
-#          assertCondtions:
-#          - {"by_status_code":"200"}
-  - path: /user.v1.User/*
+  - path: /v1/*
+    timeout: 4s
+    protocol: HTTP
+    backends:
+      - target: 'discovery:///matrix.bff.interface.http'
+    middlewares:
+      - name: circuitbreaker
+        options:
+          '@type': type.googleapis.com/gateway.middleware.circuitbreaker.v1.CircuitBreaker
+          successRatio: { "success": 0.6, "request": 100, "bucket": 10, "window": "3s" }
+          backupService: { "endpoint": { "backends": [ { "target": "127.0.0.1:8001" } ] } }
+          assertCondtions:
+            - { "by_status_code": "200-600" }
+  - path: /helloworld.Greeter/*
     method: POST
     timeout: 1s
     protocol: GRPC
     backends:
-      - target: 'discovery:///user.grpc'
+      - target: '127.0.0.1:9000'
     retry:
       attempts: 3
       perTryTimeout: 0.1s

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"net/http"
+	"os"
 
 	"github.com/go-kratos/gateway/client"
 	"github.com/go-kratos/gateway/config"
@@ -16,13 +17,15 @@ import (
 
 	_ "net/http/pprof"
 
+	_ "github.com/go-kratos/gateway/discovery/consul"
 	_ "github.com/go-kratos/gateway/discovery/nacos"
 	_ "github.com/go-kratos/gateway/middleware/auth"
+	_ "github.com/go-kratos/gateway/middleware/bbr"
 	"github.com/go-kratos/gateway/middleware/circuitbreaker"
 	_ "github.com/go-kratos/gateway/middleware/cors"
 	_ "github.com/go-kratos/gateway/middleware/logging"
-	_ "github.com/go-kratos/gateway/middleware/otel"
 	_ "github.com/go-kratos/gateway/middleware/rewrite"
+	_ "github.com/go-kratos/gateway/middleware/tracing"
 	_ "github.com/go-kratos/gateway/middleware/transcoder"
 	_ "go.uber.org/automaxprocs"
 
@@ -32,6 +35,7 @@ import (
 )
 
 var (
+	ctrlName     string
 	ctrlService  string
 	discoveryDSN string
 	proxyAddr    string
@@ -48,6 +52,7 @@ func init() {
 	flag.BoolVar(&withDebug, "debug", false, "enable debug handlers")
 	flag.StringVar(&proxyAddr, "addr", ":8080", "proxy address, eg: -addr 0.0.0.0:8080")
 	flag.StringVar(&proxyConfig, "conf", "config.yaml", "config path, eg: -conf config.yaml")
+	flag.StringVar(&ctrlName, "ctrl.name", os.Getenv("ADVERTISE_NAME"), "control gateway name, eg: gateway")
 	flag.StringVar(&ctrlService, "ctrl.service", "", "control service host, eg: http://127.0.0.1:8000")
 	flag.StringVar(&discoveryDSN, "discovery.dsn", "", "discovery dsn, eg: consul://127.0.0.1:7070?token=secret&datacenter=prod")
 }
@@ -65,7 +70,6 @@ func makeDiscovery() registry.Discovery {
 
 func main() {
 	flag.Parse()
-
 	clientFactory := client.NewFactory(makeDiscovery())
 	p, err := proxy.New(clientFactory, middleware.Create)
 	if err != nil {
@@ -77,7 +81,7 @@ func main() {
 	var ctrlLoader *configLoader.NacosCtrlConfigLoader
 	if ctrlService != "" {
 		LOG.Infof("setup control service to: %q", ctrlService)
-		ctrlLoader = configLoader.NewNacosConfigLoader(ctrlService, proxyConfig)
+		ctrlLoader = configLoader.NewNacosConfigLoader(ctrlName, ctrlService, proxyConfig)
 		if err := ctrlLoader.Load(ctx); err != nil {
 			LOG.Errorf("failed to do initial load from control service: %v, using local config instead", err)
 		}
@@ -126,7 +130,7 @@ func main() {
 		kratos.Name(bc.Name),
 		kratos.Context(ctx),
 		kratos.Server(
-			server.NewProxy(serverHandler, proxyAddr, bc),
+			server.NewProxy(serverHandler, proxyAddr),
 		),
 	)
 	if err := app.Run(); err != nil {

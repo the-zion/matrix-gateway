@@ -15,11 +15,11 @@ type NacosCtrlConfigLoader struct {
 	CtrlConfigLoader
 }
 
-func NewNacosConfigLoader(rawCtrlService, dstPath string) *NacosCtrlConfigLoader {
+func NewNacosConfigLoader(name, rawCtrlService, dstPath string) *NacosCtrlConfigLoader {
 	cl := &NacosCtrlConfigLoader{}
 	cl.ctrlService = prepareCtrlService(rawCtrlService)
 	cl.dstPath = dstPath
-	cl.hostname = cl.getHostname()
+	cl.advertiseName = name
 	cl.advertiseAddr = cl.getAdvertiseAddr()
 	return cl
 }
@@ -48,9 +48,9 @@ func (c *NacosCtrlConfigLoader) Load(ctx context.Context) (err error) {
 
 func (c *NacosCtrlConfigLoader) load(ctx context.Context) ([]byte, error) {
 	params := url.Values{}
-	params.Set("dataId", "gateway")
-	params.Set("group", "matrix")
-	LOG.Infof("%s is requesting config from %s with params: %+v", c.hostname, c.ctrlService, params)
+	params.Set("dataId", "matrix.gateway")
+	params.Set("group", "DEFAULT_GROUP")
+	LOG.Infof("%s is requesting config from %s with params: %+v", c.advertiseName, c.ctrlService, params)
 	api, err := c.urlfor("/nacos/v1/cs/configs", params)
 	if err != nil {
 		return nil, err
@@ -95,10 +95,10 @@ func (c *NacosCtrlConfigLoader) getAdvertiseAddr() string {
 	}
 	advAddr, err := c.getIPInterface(advDevice)
 	if err != nil {
-		LOG.Errorf("%q There was a problem with the IP %+v", c.hostname, err)
+		LOG.Errorf("%q There was a problem with the IP %+v", c.advertiseName, err)
 		return ""
 	}
-	LOG.Infof("%s uses IP %s\n", c.hostname, advAddr)
+	LOG.Infof("%s uses IP %s\n", c.advertiseName, advAddr)
 	return advAddr
 }
 

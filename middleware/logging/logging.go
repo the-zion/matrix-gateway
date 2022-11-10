@@ -1,21 +1,14 @@
 package logging
 
 import (
+	"go.opentelemetry.io/otel/trace"
 	"net/http"
 	"strings"
 	"time"
 
 	config "github.com/go-kratos/gateway/api/gateway/config/v1"
-	v1 "github.com/go-kratos/gateway/api/gateway/middleware/logging/v1"
 	"github.com/go-kratos/gateway/middleware"
 	"github.com/go-kratos/kratos/v2/log"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
-)
-
-var (
-	// LOG is access log
-	LOG = log.NewHelper(log.With(log.GetLogger(), "source", "accesslog"))
 )
 
 func init() {
@@ -24,12 +17,6 @@ func init() {
 
 // Middleware is a logging middleware.
 func Middleware(c *config.Middleware) (middleware.Middleware, error) {
-	options := &v1.Logging{}
-	if c.Options != nil {
-		if err := anypb.UnmarshalTo(c.Options, options, proto.UnmarshalOptions{Merge: true}); err != nil {
-			return nil, err
-		}
-	}
 	return func(next http.RoundTripper) http.RoundTripper {
 		return middleware.RoundTripperFunc(func(req *http.Request) (reply *http.Response, err error) {
 			startTime := time.Now()
@@ -45,7 +32,18 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 			}
 			ctx := req.Context()
 			nodes, _ := middleware.RequestBackendsFromContext(ctx)
-			LOG.WithContext(ctx).Log(level,
+
+			var traceId, spanId string
+			if span := trace.SpanContextFromContext(ctx); span.HasTraceID() {
+				traceId = span.TraceID().String()
+			}
+			if span := trace.SpanContextFromContext(ctx); span.HasSpanID() {
+				spanId = span.TraceID().String()
+			}
+			log.Context(ctx).Log(level,
+				"source", "accesslog",
+				"trace.id", traceId,
+				"span.id", spanId,
 				"host", req.Host,
 				"method", req.Method,
 				"scheme", req.URL.Scheme,

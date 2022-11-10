@@ -2,7 +2,8 @@ package auth
 
 import (
 	"bytes"
-	"fmt"
+	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v2/util"
 	config "github.com/go-kratos/gateway/api/gateway/config/v1"
 	v1 "github.com/go-kratos/gateway/api/gateway/middleware/auth/v1"
 	"github.com/go-kratos/gateway/middleware"
@@ -12,13 +13,14 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 )
 
 const (
-	reasonUnAuthorized string = `{"code":401, "message":"UNAUTHORIZED"}`
-	reasonTokenExpired string = `{"code":401, "message":"TOKEN_EXPIRED"}`
+	reasonUnAuthorized string = `{"code":401, "reason":"UNAUTHORIZED"}`
+	reasonTokenExpired string = `{"code":401, "reason":"TOKEN_EXPIRED"}`
 )
 
 var (
@@ -27,11 +29,7 @@ var (
 	ErrTokenInvalid           = errors.Unauthorized("TOKEN_INVALID", "Token is invalid")
 	ErrTokenExpired           = errors.Unauthorized("TOKEN_EXPIRED", "JWT token has expired")
 	ErrTokenParseFail         = errors.Unauthorized("TOKEN_PARSE_FAIL", "Fail to parse JWT token ")
-	ErrUnSupportSigningMethod = errors.Unauthorized("UNAUTHORIZED", "Wrong signing method")
-	ErrWrongContext           = errors.Unauthorized("UNAUTHORIZED", "Wrong context for middleware")
-	ErrNeedTokenProvider      = errors.Unauthorized("UNAUTHORIZED", "Token provider is missing")
-	ErrSignToken              = errors.Unauthorized("UNAUTHORIZED", "Can not sign token.Is the key correct?")
-	ErrGetKey                 = errors.Unauthorized("UNAUTHORIZED", "Can not get key while signing token")
+	ErrUnSupportSigningMethod = errors.Unauthorized("UN_SUPPORT_SIGNING_METHOD", "Wrong signing method")
 )
 
 func init() {
@@ -44,11 +42,95 @@ func claimsFunc() jwt.Claims {
 
 func newResponse(statusCode int, header http.Header, data []byte) *http.Response {
 	return &http.Response{
-		Header:        header,
 		StatusCode:    statusCode,
 		ContentLength: int64(len(data)),
 		Body:          ioutil.NopCloser(bytes.NewReader(data)),
 	}
+}
+
+func jwtCheck(options *v1.Auth, req *http.Request) error {
+	url := req.RequestURI
+	if _, ok := options.JwtCheckRouters[url]; ok {
+		auths := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
+		if len(auths) != 2 || !strings.EqualFold(auths[0], "Bearer") {
+			//return newResponse(200, req.Header, []byte(reasonUnAuthorized)), ErrMissingJwtToken
+			return ErrMissingJwtToken
+		}
+		jwtToken := auths[1]
+		var (
+			tokenInfo *jwt.Token
+			err       error
+		)
+		tokenInfo, err = jwt.ParseWithClaims(jwtToken, claimsFunc(), func(token *jwt.Token) (interface{}, error) {
+			return []byte(options.Key), nil
+		})
+		if err != nil {
+			ve, ok := err.(*jwt.ValidationError)
+			if !ok {
+				return errors.Unauthorized("UNAUTHORIZED", err.Error())
+			}
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return ErrTokenInvalid
+			}
+			if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+				return ErrTokenExpired
+			}
+			return ErrTokenParseFail
+		}
+		if !tokenInfo.Valid {
+			return ErrTokenInvalid
+		}
+		if tokenInfo.Method != jwt.SigningMethodHS256 {
+			return ErrUnSupportSigningMethod
+		}
+		token := *((tokenInfo.Claims.(jwt.Claims)).(*jwt.MapClaims))
+		req.Header.Set("uuid", token["uuid"].(string))
+	}
+	return nil
+}
+
+func casbinAuth(enforcer *casbin.Enforcer, req *http.Request) (bool, error) {
+	uuid := req.Header.Get("uuid")
+	url := req.RequestURI
+	method := req.Method
+	return enforcer.Enforce(uuid, url, method)
+}
+
+func getRequestPublicIp(req *http.Request) string {
+	var ip string
+	for _, ip = range strings.Split(req.Header.Get("X-Forwarded-For"), ",") {
+		if ip = strings.TrimSpace(ip); ip != "" && !IsInternalIP(net.ParseIP(ip)) {
+			return ip
+		}
+	}
+
+	if ip = strings.TrimSpace(req.Header.Get("X-Real-Ip")); ip != "" && !IsInternalIP(net.ParseIP(ip)) {
+		return ip
+	}
+
+	if ip, _, _ = net.SplitHostPort(req.RemoteAddr); !IsInternalIP(net.ParseIP(ip)) {
+		return ip
+	}
+
+	return ip
+}
+
+func IsInternalIP(IP net.IP) bool {
+	if IP.IsLoopback() {
+		return true
+	}
+	if ip4 := IP.To4(); ip4 != nil {
+		return ip4[0] == 10 ||
+			(ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31) ||
+			(ip4[0] == 169 && ip4[1] == 254) ||
+			(ip4[0] == 192 && ip4[1] == 168)
+	}
+	return false
+}
+
+func getRealIp(req *http.Request) {
+	realIp := getRequestPublicIp(req)
+	req.Header.Set("realIp", realIp)
 }
 
 func Middleware(c *config.Middleware) (middleware.Middleware, error) {
@@ -58,45 +140,50 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 			return nil, err
 		}
 	}
+
+	modelBox := options.Casbin.Model
+	modelByte := []byte(strings.Join(modelBox, "\n"))
+	if err := ioutil.WriteFile("./model.conf", modelByte, 0644); err != nil {
+		return nil, err
+	}
+
+	policyBox := options.Casbin.Policy
+	policyByte := []byte(strings.Join(policyBox, "\n"))
+	if err := ioutil.WriteFile("./policy.csv", policyByte, 0644); err != nil {
+		return nil, err
+	}
+
+	enforcer, err := casbin.NewEnforcer("./model.conf", "./policy.csv")
+	if err != nil {
+		return nil, err
+	}
+
+	enforcer.AddNamedMatchingFunc("g", "KeyMatch2", util.KeyMatch2)
+	enforcer.EnableLog(true)
+
 	return func(next http.RoundTripper) http.RoundTripper {
 		return middleware.RoundTripperFunc(func(req *http.Request) (reply *http.Response, err error) {
-			url := req.RequestURI
-			if _, ok := options.JwtCheckRouters[url]; ok {
-				auths := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-				if len(auths) != 2 || !strings.EqualFold(auths[0], "Bearer") {
-					return newResponse(200, req.Header, []byte(reasonUnAuthorized)), ErrMissingJwtToken
+			err = jwtCheck(options, req)
+			if err != nil {
+				LOG.Errorf("host: %s, method: %s, requestUrl: %s, error: %v", req.Host, req.Method, req.RequestURI, err)
+				if (err.(*errors.Error)).Reason == "TOKEN_EXPIRED" {
+					return newResponse(401, req.Header, []byte(reasonTokenExpired)), nil
+				} else {
+					return newResponse(401, req.Header, []byte(reasonUnAuthorized)), nil
 				}
-				jwtToken := auths[1]
-				var (
-					tokenInfo *jwt.Token
-					err       error
-				)
-				tokenInfo, err = jwt.ParseWithClaims(jwtToken, claimsFunc(), func(token *jwt.Token) (interface{}, error) {
-					return []byte(options.Key), nil
-				})
-				if err != nil {
-					ve, ok := err.(*jwt.ValidationError)
-					if !ok {
-						return newResponse(200, req.Header, []byte(reasonUnAuthorized)), errors.Unauthorized("UNAUTHORIZED", err.Error())
-					}
-					if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-						return nil, ErrTokenInvalid
-					}
-					if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-						return nil, ErrTokenExpired
-					}
-					return nil, ErrTokenParseFail
-				}
-				if !tokenInfo.Valid {
-					return nil, ErrTokenInvalid
-				}
-				if tokenInfo.Method != jwt.SigningMethodHS256 {
-					return nil, ErrUnSupportSigningMethod
-				}
-				token := *((tokenInfo.Claims.(jwt.Claims)).(*jwt.MapClaims))
-				fmt.Println(token["uuid"])
-				req.Header.Set("uuid", token["uuid"].(string))
 			}
+
+			ok, err := casbinAuth(enforcer, req)
+			if err != nil {
+				return nil, err
+			}
+
+			if ok == false {
+				return newResponse(401, req.Header, []byte(reasonUnAuthorized)), nil
+			}
+
+			getRealIp(req)
+
 			reply, err = next.RoundTrip(req)
 			return reply, err
 		})
