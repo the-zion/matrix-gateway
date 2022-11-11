@@ -26,3 +26,17 @@ build:
 # generate
 tidy:
 	go mod tidy
+
+.PHONY: all
+# generate all
+all:
+	make init;
+	make api;
+	make tidy;
+	make build;
+
+.PHONY: image
+# image
+image:
+	make all;
+	docker build -t gateway:$(VERSION) .
