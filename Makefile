@@ -1,5 +1,5 @@
 API_PROTO_FILES=$(shell find api -name *.proto)
-VERSION=$(shell git describe --tags --always)
+VERSION=$(shell git describe --tags --abbrev=0)
 .PHONY: init
 # init env
 init:
