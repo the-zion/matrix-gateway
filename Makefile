@@ -12,7 +12,7 @@ init:
 .PHONY: api
 # generate api proto
 api:
-	protoc --experimental_allow_proto3_optional --proto_path=./api \
+	protoc --proto_path=./api \
            --proto_path=./third_party \
  	       --go_out=paths=source_relative:./api \
 	       $(API_PROTO_FILES)
