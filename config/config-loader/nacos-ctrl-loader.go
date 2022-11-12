@@ -47,9 +47,19 @@ func (c *NacosCtrlConfigLoader) Load(ctx context.Context) (err error) {
 }
 
 func (c *NacosCtrlConfigLoader) load(ctx context.Context) ([]byte, error) {
+	dataId := os.Getenv("NACOS_DATAID")
+	if dataId == "" {
+		dataId = "matrix.gateway"
+	}
+
+	group := os.Getenv("NACOS_GROUP")
+	if group == "" {
+		group = "DEFAULT_GROUP"
+	}
+
 	params := url.Values{}
-	params.Set("dataId", "matrix.gateway")
-	params.Set("group", "DEFAULT_GROUP")
+	params.Set("dataId", dataId)
+	params.Set("group", group)
 	LOG.Infof("%s is requesting config from %s with params: %+v", c.advertiseName, c.ctrlService, params)
 	api, err := c.urlfor("/nacos/v1/cs/configs", params)
 	if err != nil {

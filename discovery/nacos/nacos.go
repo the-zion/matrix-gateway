@@ -8,6 +8,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -24,6 +25,11 @@ func New(dsn *url.URL) (registry.Discovery, error) {
 		return nil, err
 	}
 
+	namespace := os.Getenv("NACOS_NAMESPACE")
+	if namespace == "" {
+		namespace = "public"
+	}
+
 	sc := []constant.ServerConfig{
 		*constant.NewServerConfig(ip, uint64(port)),
 	}
@@ -34,7 +40,7 @@ func New(dsn *url.URL) (registry.Discovery, error) {
 		RotateTime:           "1h",
 		MaxAge:               3,
 		LogLevel:             "warn",
-		NamespaceId:          "public",
+		NamespaceId:          namespace,
 		TimeoutMs:            5000,
 	}
 
