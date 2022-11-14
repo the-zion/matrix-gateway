@@ -30,6 +30,16 @@ func New(dsn *url.URL) (registry.Discovery, error) {
 		namespace = "public"
 	}
 
+	username := os.Getenv("NACOS_USERNAME")
+	if username == "" {
+		username = "nacos"
+	}
+
+	password := os.Getenv("NACOS_PASSWORD")
+	if password == "" {
+		password = "nacos"
+	}
+
 	sc := []constant.ServerConfig{
 		*constant.NewServerConfig(ip, uint64(port)),
 	}
@@ -42,6 +52,8 @@ func New(dsn *url.URL) (registry.Discovery, error) {
 		LogLevel:             "warn",
 		NamespaceId:          namespace,
 		TimeoutMs:            5000,
+		Username:             username,
+		Password:             password,
 	}
 
 	client, err := clients.NewNamingClient(

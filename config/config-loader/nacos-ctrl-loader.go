@@ -66,7 +66,10 @@ func (c *NacosCtrlConfigLoader) load(ctx context.Context) ([]byte, error) {
 	params.Set("dataId", dataId)
 	params.Set("group", group)
 	params.Set("tenant", tenant)
-	LOG.Infof("%s is requesting config from %s with params: %+v", c.advertiseName, c.ctrlService, params)
+	params.Set("accessToken", os.Getenv("NACOS_ACCESS_TOKEN"))
+
+	LOG.Infof("%s is requesting config from %s with nacos-dataId: %s nacos-group: %s nacos-namespace: %s",
+		c.advertiseName, c.ctrlService, params.Get("dataId"), params.Get("group"), params.Get("tenant"))
 	api, err := c.urlfor("/nacos/v1/cs/configs", params)
 	if err != nil {
 		return nil, err
