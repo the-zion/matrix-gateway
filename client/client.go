@@ -33,7 +33,7 @@ func (c *client) Close() error {
 func (c *client) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	ctx := req.Context()
 	filter, _ := middleware.SelectorFiltersFromContext(ctx)
-	n, done, err := c.selector.Select(ctx, selector.WithFilter(filter...))
+	n, done, err := c.selector.Select(ctx, selector.WithNodeFilter(filter...))
 	if err != nil {
 		return nil, err
 	}
