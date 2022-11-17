@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/go-kratos/kratos/contrib/log/tencent/v2"
 	"net/http"
 	"os"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/go-kratos/gateway/proxy"
 	"github.com/go-kratos/gateway/proxy/debug"
 	"github.com/go-kratos/gateway/server"
+	_ "github.com/go-kratos/kratos/contrib/log/tencent/v2"
 
 	_ "net/http/pprof"
 
@@ -40,12 +42,8 @@ var (
 	discoveryDSN string
 	proxyAddr    string
 	proxyConfig  string
+	logSelect    string
 	withDebug    bool
-)
-
-var (
-	// LOG .
-	LOG = log.NewHelper(log.With(log.GetLogger(), "source", "main"))
 )
 
 func init() {
@@ -55,6 +53,7 @@ func init() {
 	flag.StringVar(&ctrlName, "ctrl.name", os.Getenv("ADVERTISE_NAME"), "control gateway name, eg: gateway")
 	flag.StringVar(&ctrlService, "ctrl.service", "", "control service host, eg: http://127.0.0.1:8000")
 	flag.StringVar(&discoveryDSN, "discovery.dsn", "", "discovery dsn, eg: consul://127.0.0.1:7070?token=secret&datacenter=prod")
+	flag.StringVar(&logSelect, "log", "default", "log select, eg: -log default")
 }
 
 func makeDiscovery() registry.Discovery {
@@ -70,6 +69,25 @@ func makeDiscovery() registry.Discovery {
 
 func main() {
 	flag.Parse()
+
+	var tencentLogger tencent.Logger
+	var err error
+	if logSelect == "tencent" {
+		tencentLogger, err = tencent.NewLogger(
+			tencent.WithEndpoint(os.Getenv("TENCENT_LOG_HOST")),
+			tencent.WithAccessKey(os.Getenv("TENCENT_LOG_ACCESSKEY")),
+			tencent.WithAccessSecret(os.Getenv("TENCENT_LOG_ACCESSSECRET")),
+			tencent.WithTopicID(os.Getenv("TENCENT_LOG_TOPIC_ID")),
+		)
+		if err != nil {
+			log.Fatalf("failed to new tencent logger: %v", err)
+		}
+		tencentLogger.GetProducer().Start()
+		log.SetLogger(tencentLogger)
+	}
+
+	LOG := log.NewHelper(log.With(log.GetLogger(), "source", "main"))
+
 	clientFactory := client.NewFactory(makeDiscovery())
 	p, err := proxy.New(clientFactory, middleware.Create)
 	if err != nil {
