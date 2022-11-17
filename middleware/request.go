@@ -12,14 +12,14 @@ type contextKey struct{}
 // RequestOptions is a request option.
 type RequestOptions struct {
 	Endpoint *config.Endpoint
-	Filters  []selector.Filter
+	Filters  []selector.NodeFilter
 	Backends []string
 }
 
 // NewRequestOptions new a request options with retry filter.
 func NewRequestOptions(c *config.Endpoint) *RequestOptions {
 	o := &RequestOptions{Endpoint: c, Backends: make([]string, 0, 1)}
-	o.Filters = []selector.Filter{func(ctx context.Context, nodes []selector.Node) []selector.Node {
+	o.Filters = []selector.NodeFilter{func(ctx context.Context, nodes []selector.Node) []selector.Node {
 		if len(o.Backends) == 0 {
 			return nodes
 		}
@@ -83,7 +83,7 @@ func WithRequestBackends(ctx context.Context, backend ...string) context.Context
 }
 
 // SelectorFiltersFromContext returns selector filter from context.
-func SelectorFiltersFromContext(ctx context.Context) ([]selector.Filter, bool) {
+func SelectorFiltersFromContext(ctx context.Context) ([]selector.NodeFilter, bool) {
 	o, ok := ctx.Value(contextKey{}).(*RequestOptions)
 	if ok {
 		return o.Filters, true
@@ -92,7 +92,7 @@ func SelectorFiltersFromContext(ctx context.Context) ([]selector.Filter, bool) {
 }
 
 // WithSelectorFitler with selector filter into context.
-func WithSelectorFitler(ctx context.Context, fn selector.Filter) context.Context {
+func WithSelectorFitler(ctx context.Context, fn selector.NodeFilter) context.Context {
 	o, ok := ctx.Value(contextKey{}).(*RequestOptions)
 	if ok {
 		o.Filters = append(o.Filters, fn)
