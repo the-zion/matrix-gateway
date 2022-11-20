@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/go-kratos/kratos/contrib/log/tencent/v2"
 	"net/http"
 	"os"
 
@@ -11,25 +10,23 @@ import (
 	"github.com/go-kratos/gateway/config"
 	configLoader "github.com/go-kratos/gateway/config/config-loader"
 	"github.com/go-kratos/gateway/discovery"
-	"github.com/go-kratos/gateway/middleware"
-	"github.com/go-kratos/gateway/proxy"
-	"github.com/go-kratos/gateway/proxy/debug"
-	"github.com/go-kratos/gateway/server"
-	_ "github.com/go-kratos/kratos/contrib/log/tencent/v2"
-
-	_ "net/http/pprof"
-
 	_ "github.com/go-kratos/gateway/discovery/consul"
 	_ "github.com/go-kratos/gateway/discovery/nacos"
+	"github.com/go-kratos/gateway/middleware"
 	_ "github.com/go-kratos/gateway/middleware/auth"
 	_ "github.com/go-kratos/gateway/middleware/bbr"
 	"github.com/go-kratos/gateway/middleware/circuitbreaker"
 	_ "github.com/go-kratos/gateway/middleware/cors"
+	_ "github.com/go-kratos/gateway/middleware/healthcheck"
 	_ "github.com/go-kratos/gateway/middleware/logging"
 	_ "github.com/go-kratos/gateway/middleware/rewrite"
 	_ "github.com/go-kratos/gateway/middleware/tracing"
 	_ "github.com/go-kratos/gateway/middleware/transcoder"
+	"github.com/go-kratos/gateway/proxy"
+	"github.com/go-kratos/gateway/proxy/debug"
+	"github.com/go-kratos/gateway/server"
 	_ "go.uber.org/automaxprocs"
+	_ "net/http/pprof"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
@@ -42,7 +39,6 @@ var (
 	discoveryDSN string
 	proxyAddr    string
 	proxyConfig  string
-	logSelect    string
 	withDebug    bool
 )
 
@@ -53,7 +49,6 @@ func init() {
 	flag.StringVar(&ctrlName, "ctrl.name", os.Getenv("ADVERTISE_NAME"), "control gateway name, eg: gateway")
 	flag.StringVar(&ctrlService, "ctrl.service", "", "control service host, eg: http://127.0.0.1:8000")
 	flag.StringVar(&discoveryDSN, "discovery.dsn", "", "discovery dsn, eg: consul://127.0.0.1:7070?token=secret&datacenter=prod")
-	flag.StringVar(&logSelect, "log", "default", "log select, eg: -log default")
 }
 
 func makeDiscovery() registry.Discovery {
@@ -69,22 +64,6 @@ func makeDiscovery() registry.Discovery {
 
 func main() {
 	flag.Parse()
-
-	var tencentLogger tencent.Logger
-	var err error
-	if logSelect == "tencent" {
-		tencentLogger, err = tencent.NewLogger(
-			tencent.WithEndpoint(os.Getenv("TENCENT_LOG_HOST")),
-			tencent.WithAccessKey(os.Getenv("TENCENT_LOG_ACCESSKEY")),
-			tencent.WithAccessSecret(os.Getenv("TENCENT_LOG_ACCESSSECRET")),
-			tencent.WithTopicID(os.Getenv("TENCENT_LOG_TOPIC_ID")),
-		)
-		if err != nil {
-			log.Fatalf("failed to new tencent logger: %v", err)
-		}
-		tencentLogger.GetProducer().Start()
-		log.SetLogger(tencentLogger)
-	}
 
 	LOG := log.NewHelper(log.With(log.GetLogger(), "source", "main"))
 
