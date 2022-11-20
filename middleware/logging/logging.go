@@ -1,8 +1,10 @@
 package logging
 
 import (
+	"github.com/go-kratos/kratos/contrib/log/tencent/v2"
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -11,12 +13,35 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+var (
+	tencentLogger tencent.Logger
+	logger        = log.GetLogger()
+)
+
 func init() {
 	middleware.Register("logging", Middleware)
 }
 
 // Middleware is a logging middleware.
 func Middleware(c *config.Middleware) (middleware.Middleware, error) {
+	if tencentLogger != nil {
+		tencentLogger.Close()
+	}
+	var err error
+	switch os.Getenv("LOG_SELECT") {
+	case "tencent":
+		tencentLogger, err = tencent.NewLogger(
+			tencent.WithEndpoint(os.Getenv("TENCENT_LOG_HOST")),
+			tencent.WithAccessKey(os.Getenv("TENCENT_LOG_ACCESSKEY")),
+			tencent.WithAccessSecret(os.Getenv("TENCENT_LOG_ACCESSSECRET")),
+			tencent.WithTopicID(os.Getenv("TENCENT_LOG_TOPIC_ID")),
+		)
+		if err != nil {
+			log.Fatalf("failed to new tencent logger: %v", err)
+		}
+		tencentLogger.GetProducer().Start()
+		logger = tencentLogger
+	}
 	return func(next http.RoundTripper) http.RoundTripper {
 		return middleware.RoundTripperFunc(func(req *http.Request) (reply *http.Response, err error) {
 			startTime := time.Now()
@@ -40,7 +65,7 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 			if span := trace.SpanContextFromContext(ctx); span.HasSpanID() {
 				spanId = span.TraceID().String()
 			}
-			log.Context(ctx).Log(level,
+			log.WithContext(ctx, logger).Log(level,
 				"source", "accesslog",
 				"trace.id", traceId,
 				"span.id", spanId,
