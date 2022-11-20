@@ -65,7 +65,23 @@ func Middleware(c *config.Middleware) (middleware.Middleware, error) {
 			if span := trace.SpanContextFromContext(ctx); span.HasSpanID() {
 				spanId = span.TraceID().String()
 			}
-			log.WithContext(ctx, logger).Log(level,
+			log.WithContext(ctx, log.NewFilter(logger, log.FilterFunc(
+				func(level log.Level, keyvals ...interface{}) bool {
+					if keyvals == nil {
+						return false
+					}
+
+					if level == log.LevelError {
+						return false
+					}
+
+					for i := 0; i < len(keyvals); i++ {
+						if keyvals[i] == "code" && keyvals[i+1] != 200 {
+							return false
+						}
+					}
+					return true
+				}))).Log(level,
 				"source", "accesslog",
 				"trace.id", traceId,
 				"span.id", spanId,
